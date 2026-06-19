@@ -9,7 +9,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <style>
-
 body{
     font-family: Arial, sans-serif;
     margin:20px;
@@ -197,31 +196,31 @@ button:nth-of-type(2):hover{
 }
 
 </style>
-
 </head>
 
 <body>
 
 <div class="container-app">
 
-<h2>Surat Pengantar RT/RW</h2>
+<h2>Input Surat Pengantar RT/RW</h2>
 
 <input id="tanggal" type="date">
 <input id="nama" placeholder="Nama">
 
 <select id="gender">
-<option value="Laki-Laki">Laki-Laki</option>
-<option value="Perempuan">Perempuan</option>
+<option value="L">Laki-Laki</option>
+<option value="P">Perempuan</option>
 </select>
 
 <input id="ttl" placeholder="Tempat / Tanggal Lahir">
 <input id="agama" placeholder="Agama">
 
 <select id="status">
-<option>Belum Kawin</option>
-<option>Kawin</option>
-<option>Cerai Hidup</option>
-<option>Cerai Mati</option>
+    <option value="Belum Kawin">Belum Kawin</option>
+    <option value="Kawin Tercatat">Kawin Tercatat</option>
+    <option value="Kawin Belum Tercatat">Kawin Belum Tercatat</option>
+    <option value="Cerai Hidup">Cerai Hidup</option>
+    <option value="Cerai Mati">Cerai Mati</option>
 </select>
 
 <input id="pendidikan" placeholder="Pendidikan">
@@ -230,8 +229,8 @@ button:nth-of-type(2):hover{
 <input id="nik" placeholder="NIK">
 <textarea id="keperluan" placeholder="Keperluan"></textarea>
 
-<button id="btnSimpan">Simpan</button>
-<button id="btnDownload">Download PDF</button>
+<button onclick="buatSurat()">Simpan</button>
+<button onclick="downloadPDF()">Download PDF</button>
 
 <hr>
 
@@ -240,24 +239,23 @@ button:nth-of-type(2):hover{
 
 </div>
 
+<!-- PDF TEMPLATE -->
 <div id="pdfTemplate"></div>
 
 <script>
 
-document.addEventListener("DOMContentLoaded", function(){
+document.addEventListener("DOMContentLoaded", function () {
     initApp();
-
-    document.getElementById("btnSimpan").addEventListener("click", buatSurat);
-    document.getElementById("btnDownload").addEventListener("click", downloadPDF);
 });
 
-function initApp(){
-    if(!localStorage.getItem("surat")){
-        localStorage.setItem("surat","[]");
+function initApp() {
+    if (!localStorage.getItem("surat")) {
+        localStorage.setItem("surat", "[]");
     }
     loadHistory();
 }
 
+// ================= FORM =================
 function getForm(){
     return {
         tanggal: document.getElementById('tanggal').value,
@@ -274,63 +272,81 @@ function getForm(){
     };
 }
 
+// ================= FORMAT TANGGAL =================
 function formatTanggal(tgl){
-    const bulan=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
-    const d=new Date(tgl);
+    const bulan = [
+        "Januari","Februari","Maret","April","Mei","Juni",
+        "Juli","Agustus","September","Oktober","November","Desember"
+    ];
+    const d = new Date(tgl);
     return `${d.getDate()} ${bulan[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+// ================= SIMPAN =================
 function buatSurat(){
 
-    let data = getForm();
-    let history = JSON.parse(localStorage.getItem("surat"));
+    const data = getForm();
 
-    history.push({
+    let history = JSON.parse(localStorage.getItem("surat") || "[]");
+
+    const suratBaru = {
         id: Date.now(),
         data: data
-    });
+    };
+
+    history.push(suratBaru);
 
     localStorage.setItem("surat", JSON.stringify(history));
 
     loadHistory();
-    alert("Tersimpan!");
+
+    alert("Data tersimpan!");
 }
 
+// ================= HISTORY =================
 function loadHistory(){
 
-    let data = JSON.parse(localStorage.getItem("surat"));
-    let html="";
+    let data = JSON.parse(localStorage.getItem("surat") || "[]");
 
-    for(let i=data.length-1;i>=0;i--){
-        html+=`
+    let html = "";
+
+    // jangan reverse (biar aman di Android WebView)
+    for (let i = data.length - 1; i >= 0; i--) {
+
+        const item = data[i];
+
+        html += `
         <div>
-            <b>${data[i].data.nama}</b><br>
-            ${data[i].data.nik}<br><br>
+            <b>${item.data.nama}</b><br>
+            NIK: ${item.data.nik}<br>
+            Keperluan: ${item.data.keperluan}<br><br>
 
-            <button onclick="generateUlang('${data[i].id}')">PDF</button>
+            <button onclick="generateUlang('${item.id}')">📄 Generate PDF</button>
         </div>`;
     }
 
-    document.getElementById("history").innerHTML=html;
+    document.getElementById("history").innerHTML = html;
 }
 
+// ================= GENERATE ULANG =================
 function generateUlang(id){
 
-    let data = JSON.parse(localStorage.getItem("surat"));
-    let item = data.find(x=>x.id==id);
+    let history = JSON.parse(localStorage.getItem("surat") || "[]");
 
-    if(item){
-        generatePDF(item.data,"surat-"+item.data.nama+".pdf");
+    const item = history.find(x => String(x.id) === String(id));
+
+    if(!item){
+        alert("Data tidak ditemukan");
+        return;
     }
+
+    generatePDF(item.data, "surat-"+item.data.nama+".pdf");
 }
 
-function downloadPDF(){
-    generatePDF(getForm(),"surat-baru.pdf");
-}
+// ================= PDF ENGINE (REUSABLE) =================
+function generatePDF(data, filename = "surat-pengantar.pdf") {
 
-function generatePDF(d,filename){
-
-    const html=`
+    const html = `
 <div class="container">
 
 <div class="header">
@@ -354,7 +370,7 @@ function generatePDF(d,filename){
 </div>
 
 <div class="right-info">
-Semarang, ${formatTanggal(d.tanggal)}<br><br>
+Semarang, ${formatTanggal(data.tanggal)}<br><br>
 Kepada Yth.<br>
 Kepala Kelurahan Sendangmulyo di<br>
 <b>SEMARANG</b>
@@ -363,22 +379,21 @@ Kepala Kelurahan Sendangmulyo di<br>
 </div>
 
 <div class="subject">
-    <br><br>
 Bersama ini menerangkan bahwa:
 </div>
 
 <table class="identity">
 
-<tr><td>1.</td><td>Nama</td><td>:</td><td>${d.nama}</td></tr>
-<tr><td>2.</td><td>Jenis Kelamin</td><td>:</td><td>${d.gender}</td></tr>
-<tr><td>3.</td><td>Tempat / Tgl Lahir</td><td>:</td><td>${d.ttl}</td></tr>
-<tr><td>4.</td><td>Agama</td><td>:</td><td>${d.agama}</td></tr>
-<tr><td>5.</td><td>Status</td><td>:</td><td>${d.status}</td></tr>
-<tr><td>6.</td><td>Pendidikan</td><td>:</td><td>${d.pendidikan}</td></tr>
-<tr><td>7.</td><td>Pekerjaan</td><td>:</td><td>${d.pekerjaan}</td></tr>
-<tr><td>8.</td><td>Alamat</td><td>:</td><td>${d.alamat}</td></tr>
-<tr><td>9.</td><td>NIK</td><td>:</td><td>${d.nik}</td></tr>
-<tr><td>10.</td><td>Keperluan</td><td>:</td><td>${d.keperluan}</td></tr>
+<tr><td>1.</td><td>Nama</td><td>:</td><td>${data.nama}</td></tr>
+<tr><td>2.</td><td>Jenis Kelamin</td><td>:</td><td>${data.gender}</td></tr>
+<tr><td>3.</td><td>Tempat / Tgl Lahir</td><td>:</td><td>${data.ttl}</td></tr>
+<tr><td>4.</td><td>Agama</td><td>:</td><td>${data.agama}</td></tr>
+<tr><td>5.</td><td>Status</td><td>:</td><td>${data.status}</td></tr>
+<tr><td>6.</td><td>Pendidikan</td><td>:</td><td>${data.pendidikan}</td></tr>
+<tr><td>7.</td><td>Pekerjaan</td><td>:</td><td>${data.pekerjaan}</td></tr>
+<tr><td>8.</td><td>Alamat</td><td>:</td><td>${data.alamat}</td></tr>
+<tr><td>9.</td><td>NIK</td><td>:</td><td>${data.nik}</td></tr>
+<tr><td>10.</td><td>Keperluan</td><td>:</td><td>${data.keperluan}</td></tr>
 
 </table>
 
@@ -403,20 +418,18 @@ Ketua RT 09 / RW 12
 </div>
 `;
 
-    let el=document.getElementById("pdfTemplate");
-    el.innerHTML=html;
-    el.style.display="block";
+    const el = document.getElementById("pdfTemplate");
+    el.innerHTML = html;
+    el.style.display = "block";
 
-    setTimeout(()=>{
-        html2pdf().set({
-            margin:0,
-            filename:filename,
-            html2canvas:{scale:2},
-            jsPDF:{format:"a4"}
-        }).from(el).save().then(()=>{
-            el.style.display="none";
-        });
-    },300);
+    html2pdf().set({
+        margin: 0,
+        filename: filename,
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { format: "a4", orientation: "portrait" }
+    }).from(el).save().then(() => {
+        el.style.display = "none";
+    });
 }
 
 </script>
