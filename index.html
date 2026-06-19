@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Surat Pengantar RT/RW</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<style>
+
+body{
+    font-family: Arial, sans-serif;
+    margin:20px;
+    background:#f5f5f5;
+}
+
+.container-app{
+    max-width: 900px;
+    margin: 40px auto;
+    background: #ffffff;
+    padding: 28px;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+input, select, textarea{
+    width: 100%;
+    padding: 12px 14px;
+    margin: 8px 0 14px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+    transition: 0.2s ease;
+    background: #fafafa;
+    box-sizing: border-box;
+}
+
+input:focus,
+select:focus,
+textarea:focus{
+    border-color: #4a90e2;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(74,144,226,0.15);
+}
+
+button{
+    padding: 12px 16px;
+    margin-right: 10px;
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: 0.2s ease;
+}
+button:nth-of-type(1){
+    background: #4a90e2;
+    color: white;
+}
+
+button:nth-of-type(1):hover{
+    background: #357bd8;
+}
+
+button:nth-of-type(2){
+    background: #2ecc71;
+    color: white;
+}
+
+button:nth-of-type(2):hover{
+    background: #27ae60;
+}
+
+#history div{
+    background: #f9f9f9;
+    padding: 12px 14px;
+    margin: 10px 0;
+    border-radius: 10px;
+    border: 1px solid #eee;
+    transition: 0.2s;
+}
+
+#history div:hover{
+    background: #f1f7ff;
+    border-color: #cfe3ff;
+}
+
+/* ====== SURAT TEMPLATE (PDF) ====== */
+#pdfTemplate{
+    display:none;
+    font-family: Arial, sans-serif;
+}
+
+.container{
+    width:800px;
+    margin:auto;
+    background:white;
+    padding:30px;
+    box-sizing:border-box;
+}
+
+.header{
+    text-align:center;
+    position:relative;
+}
+
+.logo{
+    position:absolute;
+    left:80px;
+    top:0;
+    bottom: 3px;
+    width:80px;
+}
+
+.header h1{
+    margin:0;
+    font-size:28px;
+}
+
+.header h2{
+    margin:0;
+    font-size:18px;
+}
+
+.header h3{
+    margin:0;
+    font-size:16px;
+}
+
+.line{
+    width:calc(100% - 4px);
+    margin:10px auto;
+    border-top:3px solid #000;
+    border-bottom:1px solid #000;
+    height:3px;
+}
+
+.top-section{
+    display:flex;
+    justify-content:space-between;
+    margin-top:15px;
+}
+
+.left-info{
+    width:50%;
+}
+
+.right-info{
+    width:45%;
+    text-align:center;
+    padding-right: 30px;
+}
+
+.identity{
+    border-collapse:collapse;
+    margin-top:20px;
+}
+
+.identity td{
+    padding:4px 6px;
+    vertical-align:top;
+}
+
+.identity .no{
+    width:25px;
+}
+
+.identity .label{
+    width:180px; /* sesuaikan */
+}
+
+.identity .colon{
+    width:10px;
+    text-align:center;
+}
+
+.footer-text{
+    margin-top:40px;
+}
+
+.signature{
+    margin-top:60px;
+    display:flex;
+    justify-content:space-between;
+    text-align:center;
+}
+
+.sign-box{
+    width:45%;
+}
+
+.name-space{
+    margin-top:80px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container-app">
+
+<h2>Surat Pengantar RT/RW</h2>
+
+<input id="tanggal" type="date">
+<input id="nama" placeholder="Nama">
+
+<select id="gender">
+<option value="Laki-Laki">Laki-Laki</option>
+<option value="Perempuan">Perempuan</option>
+</select>
+
+<input id="ttl" placeholder="Tempat / Tanggal Lahir">
+<input id="agama" placeholder="Agama">
+
+<select id="status">
+<option>Belum Kawin</option>
+<option>Kawin</option>
+<option>Cerai Hidup</option>
+<option>Cerai Mati</option>
+</select>
+
+<input id="pendidikan" placeholder="Pendidikan">
+<input id="pekerjaan" placeholder="Pekerjaan">
+<textarea id="alamat" placeholder="Alamat"></textarea>
+<input id="nik" placeholder="NIK">
+<textarea id="keperluan" placeholder="Keperluan"></textarea>
+
+<button id="btnSimpan">Simpan</button>
+<button id="btnDownload">Download PDF</button>
+
+<hr>
+
+<h3>Histori Surat</h3>
+<div id="history"></div>
+
+</div>
+
+<div id="pdfTemplate"></div>
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function(){
+    initApp();
+
+    document.getElementById("btnSimpan").addEventListener("click", buatSurat);
+    document.getElementById("btnDownload").addEventListener("click", downloadPDF);
+});
+
+function initApp(){
+    if(!localStorage.getItem("surat")){
+        localStorage.setItem("surat","[]");
+    }
+    loadHistory();
+}
+
+function getForm(){
+    return {
+        tanggal: document.getElementById('tanggal').value,
+        nama: document.getElementById('nama').value,
+        gender: document.getElementById('gender').value,
+        ttl: document.getElementById('ttl').value,
+        agama: document.getElementById('agama').value,
+        status: document.getElementById('status').value,
+        pendidikan: document.getElementById('pendidikan').value,
+        pekerjaan: document.getElementById('pekerjaan').value,
+        alamat: document.getElementById('alamat').value,
+        nik: document.getElementById('nik').value,
+        keperluan: document.getElementById('keperluan').value
+    };
+}
+
+function formatTanggal(tgl){
+    const bulan=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+    const d=new Date(tgl);
+    return `${d.getDate()} ${bulan[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function buatSurat(){
+
+    let data = getForm();
+    let history = JSON.parse(localStorage.getItem("surat"));
+
+    history.push({
+        id: Date.now(),
+        data: data
+    });
+
+    localStorage.setItem("surat", JSON.stringify(history));
+
+    loadHistory();
+    alert("Tersimpan!");
+}
+
+function loadHistory(){
+
+    let data = JSON.parse(localStorage.getItem("surat"));
+    let html="";
+
+    for(let i=data.length-1;i>=0;i--){
+        html+=`
+        <div>
+            <b>${data[i].data.nama}</b><br>
+            ${data[i].data.nik}<br><br>
+
+            <button onclick="generateUlang('${data[i].id}')">PDF</button>
+        </div>`;
+    }
+
+    document.getElementById("history").innerHTML=html;
+}
+
+function generateUlang(id){
+
+    let data = JSON.parse(localStorage.getItem("surat"));
+    let item = data.find(x=>x.id==id);
+
+    if(item){
+        generatePDF(item.data,"surat-"+item.data.nama+".pdf");
+    }
+}
+
+function downloadPDF(){
+    generatePDF(getForm(),"surat-baru.pdf");
+}
+
+function generatePDF(d,filename){
+
+    const html=`
+<div class="container">
+
+<div class="header">
+
+<h1>KOTA SEMARANG</h1>
+<h2>KECAMATAN TEMBALANG</h2>
+<h2>KELURAHAN SENDANGMULYO</h2>
+<h3>RT. 09 / RW. 12</h3>
+
+</div>
+
+<div class="line"></div>
+
+<div class="top-section">
+
+<div class="left-info">
+<table>
+<tr><td>Nomor</td><td>:</td><td></td></tr>
+<tr><td>Hal</td><td>:</td><td>Surat Pengantar</td></tr>
+</table>
+</div>
+
+<div class="right-info">
+Semarang, ${formatTanggal(d.tanggal)}<br><br>
+Kepada Yth.<br>
+Kepala Kelurahan Sendangmulyo di<br>
+<b>SEMARANG</b>
+</div>
+
+</div>
+
+<div class="subject">
+    <br><br>
+Bersama ini menerangkan bahwa:
+</div>
+
+<table class="identity">
+
+<tr><td>1.</td><td>Nama</td><td>:</td><td>${d.nama}</td></tr>
+<tr><td>2.</td><td>Jenis Kelamin</td><td>:</td><td>${d.gender}</td></tr>
+<tr><td>3.</td><td>Tempat / Tgl Lahir</td><td>:</td><td>${d.ttl}</td></tr>
+<tr><td>4.</td><td>Agama</td><td>:</td><td>${d.agama}</td></tr>
+<tr><td>5.</td><td>Status</td><td>:</td><td>${d.status}</td></tr>
+<tr><td>6.</td><td>Pendidikan</td><td>:</td><td>${d.pendidikan}</td></tr>
+<tr><td>7.</td><td>Pekerjaan</td><td>:</td><td>${d.pekerjaan}</td></tr>
+<tr><td>8.</td><td>Alamat</td><td>:</td><td>${d.alamat}</td></tr>
+<tr><td>9.</td><td>NIK</td><td>:</td><td>${d.nik}</td></tr>
+<tr><td>10.</td><td>Keperluan</td><td>:</td><td>${d.keperluan}</td></tr>
+
+</table>
+
+<div class="footer-text">
+Demikian surat ini dibuat untuk dipergunakan sebagaimana mestinya.
+</div>
+
+<div class="signature">
+
+<div class="sign-box">
+Ketua RW 12
+<div class="name-space">(.....................)</div>
+</div>
+
+<div class="sign-box">
+Ketua RT 09 / RW 12
+<div class="name-space">(.....................)</div>
+</div>
+
+</div>
+
+</div>
+`;
+
+    let el=document.getElementById("pdfTemplate");
+    el.innerHTML=html;
+    el.style.display="block";
+
+    setTimeout(()=>{
+        html2pdf().set({
+            margin:0,
+            filename:filename,
+            html2canvas:{scale:2},
+            jsPDF:{format:"a4"}
+        }).from(el).save().then(()=>{
+            el.style.display="none";
+        });
+    },300);
+}
+
+</script>
+
+</body>
+</html>
