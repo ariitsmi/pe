@@ -55,6 +55,7 @@ button{
     font-size: 14px;
     transition: 0.2s ease;
 }
+
 button:nth-of-type(1){
     background: #4a90e2;
     color: white;
@@ -91,6 +92,7 @@ button:nth-of-type(2):hover{
 #pdfTemplate{
     display:none;
     font-family: Arial, sans-serif;
+    background:white;
 }
 
 .container{
@@ -168,7 +170,7 @@ button:nth-of-type(2):hover{
 }
 
 .identity .label{
-    width:180px; /* sesuaikan */
+    width:180px;
 }
 
 .identity .colon{
@@ -204,16 +206,16 @@ button:nth-of-type(2):hover{
 
 <h2>Input Surat Pengantar RT/RW</h2>
 
-<input id="tanggal" type="date">
-<input id="nama" placeholder="Nama">
+<input id="tanggal" type="date" required>
+<input id="nama" placeholder="Nama" required>
 
 <select id="gender">
 <option value="L">Laki-Laki</option>
 <option value="P">Perempuan</option>
 </select>
 
-<input id="ttl" placeholder="Tempat / Tanggal Lahir">
-<input id="agama" placeholder="Agama">
+<input id="ttl" placeholder="Tempat / Tanggal Lahir" required>
+<input id="agama" placeholder="Agama" required>
 
 <select id="status">
     <option value="Belum Kawin">Belum Kawin</option>
@@ -223,11 +225,11 @@ button:nth-of-type(2):hover{
     <option value="Cerai Mati">Cerai Mati</option>
 </select>
 
-<input id="pendidikan" placeholder="Pendidikan">
-<input id="pekerjaan" placeholder="Pekerjaan">
-<textarea id="alamat" placeholder="Alamat"></textarea>
-<input id="nik" placeholder="NIK">
-<textarea id="keperluan" placeholder="Keperluan"></textarea>
+<input id="pendidikan" placeholder="Pendidikan" required>
+<input id="pekerjaan" placeholder="Pekerjaan" required>
+<textarea id="alamat" placeholder="Alamat" required></textarea>
+<input id="nik" placeholder="NIK" required>
+<textarea id="keperluan" placeholder="Keperluan" required></textarea>
 
 <button onclick="buatSurat()">Simpan</button>
 <button onclick="downloadPDF()">Download PDF</button>
@@ -243,19 +245,9 @@ button:nth-of-type(2):hover{
 <div id="pdfTemplate"></div>
 
 <script>
+let editIndex = -1;
+loadHistory();
 
-document.addEventListener("DOMContentLoaded", function () {
-    initApp();
-});
-
-function initApp() {
-    if (!localStorage.getItem("surat")) {
-        localStorage.setItem("surat", "[]");
-    }
-    loadHistory();
-}
-
-// ================= FORM =================
 function getForm(){
     return {
         tanggal: document.getElementById('tanggal').value,
@@ -270,83 +262,169 @@ function getForm(){
         nik: document.getElementById('nik').value,
         keperluan: document.getElementById('keperluan').value
     };
+    
+}
+function validasiForm(){
+    const fields = [
+        { id: "tanggal", label: "Tanggal" },
+        { id: "nama", label: "Nama" },
+        { id: "gender", label: "Jenis Kelamin" },
+        { id: "ttl", label: "Tempat / Tanggal Lahir" },
+        { id: "agama", label: "Agama" },
+        { id: "status", label: "Status" },
+        { id: "pendidikan", label: "Pendidikan" },
+        { id: "pekerjaan", label: "Pekerjaan" },
+        { id: "alamat", label: "Alamat" },
+        { id: "nik", label: "NIK" },
+        { id: "keperluan", label: "Keperluan" }
+    ];
+
+    for(let i = 0; i < fields.length; i++){
+        const field = fields[i];
+        const element = document.getElementById(field.id);
+
+        if(!element.value || element.value.trim() === ""){
+            alert(field.label + " wajib diisi.");
+
+            element.focus();
+
+            return false;
+        }
+    }
+
+    return true;
 }
 
-// ================= FORMAT TANGGAL =================
 function formatTanggal(tgl){
+    if(!tgl){
+        return "";
+    }
+
     const bulan = [
         "Januari","Februari","Maret","April","Mei","Juni",
         "Juli","Agustus","September","Oktober","November","Desember"
     ];
+
     const d = new Date(tgl);
+
+    if(isNaN(d.getTime())){
+        return "";
+    }
+
     return `${d.getDate()} ${bulan[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-// ================= SIMPAN =================
 function buatSurat(){
+
+    if(!validasiForm()){
+        return;
+    }
 
     const data = getForm();
 
     let history = JSON.parse(localStorage.getItem("surat") || "[]");
 
-    const suratBaru = {
-        id: Date.now(),
-        data: data
-    };
-
-    history.push(suratBaru);
+    if(editIndex >= 0){
+        history[editIndex] = data;
+        editIndex = -1;
+        alert("Data berhasil diupdate!");
+    } 
+    else {
+        history.push(data);
+        alert("Data tersimpan!");
+    }
 
     localStorage.setItem("surat", JSON.stringify(history));
 
+    clearForm();
     loadHistory();
-
-    alert("Data tersimpan!");
 }
 
-// ================= HISTORY =================
-function loadHistory(){
+function editData(index){
+    let data = JSON.parse(localStorage.getItem("surat") || "[]");
+
+    let d = data[index];
+
+    document.getElementById('tanggal').value = d.tanggal;
+    document.getElementById('nama').value = d.nama;
+    document.getElementById('gender').value = d.gender;
+    document.getElementById('ttl').value = d.ttl;
+    document.getElementById('agama').value = d.agama;
+    document.getElementById('status').value = d.status;
+    document.getElementById('pendidikan').value = d.pendidikan;
+    document.getElementById('pekerjaan').value = d.pekerjaan;
+    document.getElementById('alamat').value = d.alamat;
+    document.getElementById('nik').value = d.nik;
+    document.getElementById('keperluan').value = d.keperluan;
+
+    editIndex = index;
+
+    alert("Mode edit aktif. Silakan ubah data lalu klik Simpan");
+}
+
+function hapusData(index){
+
+    let confirmHapus = confirm("Apakah yakin ingin menghapus data ini?");
+
+    if(!confirmHapus) return;
 
     let data = JSON.parse(localStorage.getItem("surat") || "[]");
 
+    data.splice(index, 1);
+
+    localStorage.setItem("surat", JSON.stringify(data));
+
+    loadHistory();
+
+    alert("Data berhasil dihapus!");
+}
+
+function clearForm(){
+    document.getElementById('tanggal').value = "";
+    document.getElementById('nama').value = "";
+    document.getElementById('gender').value = "L";
+    document.getElementById('ttl').value = "";
+    document.getElementById('agama').value = "";
+    document.getElementById('status').value = "Belum Kawin";
+    document.getElementById('pendidikan').value = "";
+    document.getElementById('pekerjaan').value = "";
+    document.getElementById('alamat').value = "";
+    document.getElementById('nik').value = "";
+    document.getElementById('keperluan').value = "";
+}
+
+function loadHistory(){
+
+    let data = JSON.parse(localStorage.getItem("surat") || "[]");
     let html = "";
 
-    // jangan reverse (biar aman di Android WebView)
-    for (let i = data.length - 1; i >= 0; i--) {
-
-        const item = data[i];
+    data.forEach((d,i)=>{
 
         html += `
         <div>
-            <b>${item.data.nama}</b><br>
-            NIK: ${item.data.nik}<br>
-            Keperluan: ${item.data.keperluan}<br><br>
+            <b>${d.nama}</b><br>
+            NIK: ${d.nik}<br>
+            Keperluan: ${d.keperluan}<br><br>
 
-            <button onclick="generateUlang('${item.id}')">📄 Generate PDF</button>
+            <button onclick='downloadPDFFromData(${JSON.stringify(d)})'>
+                PDF
+            </button>
+
+            <button onclick='editData(${i})'>
+                Edit
+            </button>
+
+            <button onclick='hapusData(${i})' style="background:#e74c3c;color:white;">
+                Hapus
+            </button>
         </div>`;
-    }
+    });
 
     document.getElementById("history").innerHTML = html;
 }
 
-// ================= GENERATE ULANG =================
-function generateUlang(id){
-
-    let history = JSON.parse(localStorage.getItem("surat") || "[]");
-
-    const item = history.find(x => String(x.id) === String(id));
-
-    if(!item){
-        alert("Data tidak ditemukan");
-        return;
-    }
-
-    generatePDF(item.data, "surat-"+item.data.nama+".pdf");
-}
-
-// ================= PDF ENGINE (REUSABLE) =================
-function generatePDF(data, filename = "surat-pengantar.pdf") {
-
-    const html = `
+function buatTemplateSurat(d){
+    return `
 <div class="container">
 
 <div class="header">
@@ -358,9 +436,7 @@ function generatePDF(data, filename = "surat-pengantar.pdf") {
 <h3>RT. 09 / RW. 12</h3>
 
 </div>
-
 <div class="line"></div>
-
 <div class="top-section">
 
 <div class="left-info">
@@ -371,7 +447,7 @@ function generatePDF(data, filename = "surat-pengantar.pdf") {
 </div>
 
 <div class="right-info">
-Semarang, ${formatTanggal(data.tanggal)}<br><br>
+Semarang, ${formatTanggal(d.tanggal)}<br><br>
 Kepada Yth.<br>
 Kepala Kelurahan Sendangmulyo di<br>
 <b>SEMARANG</b>
@@ -379,22 +455,62 @@ Kepala Kelurahan Sendangmulyo di<br>
 
 </div>
 
-<div class="subject">
+<div class="subject"><br><br>
 Bersama ini menerangkan bahwa:
 </div>
 
 <table class="identity">
 
-<tr><td>1.</td><td>Nama</td><td>:</td><td>${data.nama}</td></tr>
-<tr><td>2.</td><td>Jenis Kelamin</td><td>:</td><td>${data.gender}</td></tr>
-<tr><td>3.</td><td>Tempat / Tgl Lahir</td><td>:</td><td>${data.ttl}</td></tr>
-<tr><td>4.</td><td>Agama</td><td>:</td><td>${data.agama}</td></tr>
-<tr><td>5.</td><td>Status</td><td>:</td><td>${data.status}</td></tr>
-<tr><td>6.</td><td>Pendidikan</td><td>:</td><td>${data.pendidikan}</td></tr>
-<tr><td>7.</td><td>Pekerjaan</td><td>:</td><td>${data.pekerjaan}</td></tr>
-<tr><td>8.</td><td>Alamat</td><td>:</td><td>${data.alamat}</td></tr>
-<tr><td>9.</td><td>NIK</td><td>:</td><td>${data.nik}</td></tr>
-<tr><td>10.</td><td>Keperluan</td><td>:</td><td>${data.keperluan}</td></tr>
+<tr>
+<td>1.</td>
+<td>Nama</td><td>:</td>
+<td>${d.nama}</td>
+</tr>
+
+<tr>
+<td>2.</td><td>Jenis Kelamin</td><td>:</td>
+<td>${d.gender}</td>
+</tr>
+
+<tr>
+<td>3.</td><td>Tempat / Tgl Lahir</td><td>:</td>
+<td>${d.ttl}</td>
+</tr>
+
+<tr>
+<td>3.</td><td>Kewarganegaraan/Agama</td><td>:</td>
+<td>Indonesia / ${d.agama}</td>
+</tr>
+
+<tr>
+<td>4.</td><td>Status</td><td>:</td>
+<td>${d.status}</td>
+</tr>
+
+<tr>
+<td>5.</td><td>Pendidikan</td><td>:</td>
+<td>${d.pendidikan}</td>
+</tr>
+
+<tr>
+<td>6.</td><td>Pekerjaan</td><td>:</td>
+<td>${d.pekerjaan}</td>
+</tr>
+
+<tr>
+<td>7.</td><td>Alamat</td><td>:</td>
+<td>${d.alamat}</td>
+</tr>
+
+<tr>
+<td>8.</td><td>NIK</td><td>:</td>
+<td>${d.nik}</td>
+</tr>
+
+<tr>
+<td>9.</td><td>Keperluan</td><td>:</td>
+<td>${d.keperluan}</td>
+</tr>
 
 </table>
 
@@ -418,21 +534,83 @@ Ketua RT 09 / RW 12
 
 </div>
 `;
+}
+
+function generatePDF(html, filename){
 
     const el = document.getElementById("pdfTemplate");
+
     el.innerHTML = html;
+
     el.style.display = "block";
+    el.style.position = "absolute";
+    el.style.left = "0";
+    el.style.top = "0";
+    el.style.width = "800px";
+    el.style.margin = "0";
+    el.style.padding = "0";
+    el.style.background = "#ffffff";
+    el.style.zIndex = "9999";
+
+    const target = el.querySelector(".container");
 
     html2pdf().set({
-        margin: 0,
-        filename: filename,
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { format: "a4", orientation: "portrait" }
-    }).from(el).save().then(() => {
+        margin:0,
+        filename:filename,
+        html2canvas:{
+            scale:2,
+            scrollX:0,
+            scrollY:0,
+            backgroundColor:"#ffffff"
+        },
+        jsPDF:{
+            unit:"pt",
+            format:"a4",
+            orientation:"portrait"
+        }
+    }).from(target).save().then(()=>{
         el.style.display = "none";
+        el.style.position = "";
+        el.style.left = "";
+        el.style.top = "";
+        el.style.width = "";
+        el.style.margin = "";
+        el.style.padding = "";
+        el.style.background = "";
+        el.style.zIndex = "";
+        el.innerHTML = "";
     });
 }
 
+function downloadPDF(){
+
+    if(!validasiForm()){
+        return;
+    }
+
+    const d = getForm();
+
+    const html = buatTemplateSurat(d);
+
+    generatePDF(
+        html,
+        `surat-pengantar ${d.nama}.pdf`
+    );
+}
+
+function downloadPDFFromData(d){
+    downloadPDFFromHistory(d);
+}
+
+function downloadPDFFromHistory(d){
+
+    const html = buatTemplateSurat(d);
+
+    generatePDF(
+        html,
+        `surat-${d.nama}.pdf`
+    );
+}
 </script>
 
 </body>
